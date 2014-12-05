@@ -46,6 +46,12 @@
 #include <sys/xattr.h>
 #endif
 
+struct xmp {
+	char *input;
+	char *output;
+	char *key;
+};
+
 static int xmp_getattr(const char *path, struct stat *stbuf)
 {
 	int res;
@@ -411,5 +417,20 @@ static struct fuse_operations xmp_oper = {
 int main(int argc, char *argv[])
 {
 	umask(0);
-	return fuse_main(argc, argv, &xmp_oper, NULL);
+
+	if (argc < 4){
+		printf("Not Enough Arguments... Exiting\n");
+		return 1;
+	}
+
+	struct xmp *mirror;
+	mirror = malloc(sizeof(struct xmp));
+	mirror->input = realpath(argv[3],NULL);
+	mirror->output = realpath(argv[2],NULL);
+	mirror->key = argv[1];
+	argv[1] = argv[3];
+    argv[2] = argv[4];
+    argc = argc - 2;
+
+	return fuse_main(argc, argv, &xmp_oper, mirror);
 }
