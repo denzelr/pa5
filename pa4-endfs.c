@@ -32,6 +32,7 @@
 #ifdef linux
 /* For pread()/pwrite() */
 #define _XOPEN_SOURCE 500
+#define PATH 255
 #endif
 
 #include <fuse.h>
@@ -44,13 +45,33 @@
 #include <sys/time.h>
 #ifdef HAVE_SETXATTR
 #include <sys/xattr.h>
+#include "aes-crypt.h"
 #endif
+
+struct xmp {
+	char *input; //mirror path
+	char *output; //mount path
+	char *key; //password
+};
+
+#define XMP_INFO ((struct xmp *) fuse_get_context()->private_data)
+
+static int mirror(char mirDir[PATH], const char *path)
+{
+	char *dir = XMP_INFO->input;
+	strcpy(mirDir, dir);
+	strcat(mirDir, path);
+	return 0;
+}
 
 static int xmp_getattr(const char *path, struct stat *stbuf)
 {
 	int res;
 
-	res = lstat(path, stbuf);
+	char newPath[PATH];
+	mirror(newPath,path);
+
+	res = lstat(newPath, stbuf);
 	if (res == -1)
 		return -errno;
 
@@ -61,7 +82,10 @@ static int xmp_access(const char *path, int mask)
 {
 	int res;
 
-	res = access(path, mask);
+	char newPath[PATH];
+	mirror(newPath,path);
+
+	res = access(newPath, mask);
 	if (res == -1)
 		return -errno;
 
@@ -72,7 +96,10 @@ static int xmp_readlink(const char *path, char *buf, size_t size)
 {
 	int res;
 
-	res = readlink(path, buf, size - 1);
+	char newPath[PATH];
+	mirror(newPath,path);
+
+	res = readlink(newPath, buf, size - 1);
 	if (res == -1)
 		return -errno;
 
@@ -90,7 +117,10 @@ static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	(void) offset;
 	(void) fi;
 
-	dp = opendir(path);
+	char newPath[PATH];
+	mirror(newPath,path);
+
+	dp = opendir(newPath);
 	if (dp == NULL)
 		return -errno;
 
@@ -111,16 +141,19 @@ static int xmp_mknod(const char *path, mode_t mode, dev_t rdev)
 {
 	int res;
 
+	char newPath[PATH];
+	mirror(newPath,path);
+
 	/* On Linux this could just be 'mknod(path, mode, rdev)' but this
 	   is more portable */
 	if (S_ISREG(mode)) {
-		res = open(path, O_CREAT | O_EXCL | O_WRONLY, mode);
+		res = open(newPath, O_CREAT | O_EXCL | O_WRONLY, mode);
 		if (res >= 0)
 			res = close(res);
 	} else if (S_ISFIFO(mode))
-		res = mkfifo(path, mode);
+		res = mkfifo(newPath, mode);
 	else
-		res = mknod(path, mode, rdev);
+		res = mknod(newPath, mode, rdev);
 	if (res == -1)
 		return -errno;
 
@@ -130,14 +163,14 @@ static int xmp_mknod(const char *path, mode_t mode, dev_t rdev)
 static int xmp_mkdir(const char *path, mode_t mode)
 {
 	int res;
-	res = mkdir(path, mode);
-	
-	//this checks if it can make a directory 
+
+	char newPath[PATH];
+	mirror(newPath,path);
+
+	res = mkdir(newPath, mode);
 	if (res == -1)
 		return -errno;
-	
-	//do any function calls here
-	printf("%s\n", "I AM MAKING A DIRECTORY!" );
+
 	return 0;
 }
 
@@ -145,7 +178,10 @@ static int xmp_unlink(const char *path)
 {
 	int res;
 
-	res = unlink(path);
+	char newPath[PATH];
+	mirror(newPath,path);
+
+	res = unlink(newPath);
 	if (res == -1)
 		return -errno;
 
@@ -156,7 +192,10 @@ static int xmp_rmdir(const char *path)
 {
 	int res;
 
-	res = rmdir(path);
+	char newPath[PATH];
+	mirror(newPath,path);
+
+	res = rmdir(newPath);
 	if (res == -1)
 		return -errno;
 
@@ -200,7 +239,10 @@ static int xmp_chmod(const char *path, mode_t mode)
 {
 	int res;
 
-	res = chmod(path, mode);
+	char newPath[PATH];
+	mirror(newPath,path);
+
+	res = chmod(newPath, mode);
 	if (res == -1)
 		return -errno;
 
@@ -211,7 +253,10 @@ static int xmp_chown(const char *path, uid_t uid, gid_t gid)
 {
 	int res;
 
-	res = lchown(path, uid, gid);
+	char newPath[PATH];
+	mirror(newPath,path);
+
+	res = lchown(newPath, uid, gid);
 	if (res == -1)
 		return -errno;
 
@@ -222,7 +267,10 @@ static int xmp_truncate(const char *path, off_t size)
 {
 	int res;
 
-	res = truncate(path, size);
+	char newPath[PATH];
+	mirror(newPath,path);
+
+	res = truncate(newPath, size);
 	if (res == -1)
 		return -errno;
 
@@ -234,12 +282,15 @@ static int xmp_utimens(const char *path, const struct timespec ts[2])
 	int res;
 	struct timeval tv[2];
 
+	char newPath[PATH];
+	mirror(newPath,path);
+
 	tv[0].tv_sec = ts[0].tv_sec;
 	tv[0].tv_usec = ts[0].tv_nsec / 1000;
 	tv[1].tv_sec = ts[1].tv_sec;
 	tv[1].tv_usec = ts[1].tv_nsec / 1000;
 
-	res = utimes(path, tv);
+	res = utimes(newPath, tv);
 	if (res == -1)
 		return -errno;
 
@@ -250,7 +301,10 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 {
 	int res;
 
-	res = open(path, fi->flags);
+	char newPath[PATH];
+	mirror(newPath,path);
+
+	res = open(newPath, fi->flags);
 	if (res == -1)
 		return -errno;
 
@@ -264,14 +318,14 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 	int fd;
 	int res;
 
+	char newPath[PATH];
+	mirror(newPath,path);
+
 	(void) fi;
-	fd = open(path, O_RDONLY);
+	fd = open(newPath, O_RDONLY);
 	if (fd == -1)
 		return -errno;
-	//check flag
-	//		if the flag is not set / set to unencrypted, default read
-	//		otherwise
-	//pipe the buffer through the decryptor
+
 	res = pread(fd, buf, size, offset);
 	if (res == -1)
 		res = -errno;
@@ -280,21 +334,20 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 	return res;
 }
 
-
-//writes to a file
 static int xmp_write(const char *path, const char *buf, size_t size,
 		     off_t offset, struct fuse_file_info *fi)
 {
 	int fd;
 	int res;
 
+	char newPath[PATH];
+	mirror(newPath,path);
+
 	(void) fi;
-	fd = open(path, O_WRONLY);
+	fd = open(newPath, O_WRONLY);
 	if (fd == -1)
 		return -errno;
-	//set encrypted flag
-	//get the cipher text passing in the buf
-	//write the ciphertext to the file
+
 	res = pwrite(fd, buf, size, offset);
 	if (res == -1)
 		res = -errno;
@@ -307,7 +360,10 @@ static int xmp_statfs(const char *path, struct statvfs *stbuf)
 {
 	int res;
 
-	res = statvfs(path, stbuf);
+	char newPath[PATH];
+	mirror(newPath,path);
+
+	res = statvfs(newPath, stbuf);
 	if (res == -1)
 		return -errno;
 
@@ -319,7 +375,9 @@ static int xmp_create(const char* path, mode_t mode, struct fuse_file_info* fi) 
     (void) fi;
 
     int res;
-    res = creat(path, mode);
+    char newPath[PATH];
+	mirror(newPath,path);
+    res = creat(newPath, mode);
     if(res == -1)
 	return -errno;
 
@@ -355,7 +413,9 @@ static int xmp_fsync(const char *path, int isdatasync,
 static int xmp_setxattr(const char *path, const char *name, const char *value,
 			size_t size, int flags)
 {
-	int res = lsetxattr(path, name, value, size, flags);
+	char newPath[PATH];
+	mirror(newPath,path);
+	int res = lsetxattr(newPath, name, value, size, flags);
 	if (res == -1)
 		return -errno;
 	return 0;
@@ -364,7 +424,9 @@ static int xmp_setxattr(const char *path, const char *name, const char *value,
 static int xmp_getxattr(const char *path, const char *name, char *value,
 			size_t size)
 {
-	int res = lgetxattr(path, name, value, size);
+	char newPath[PATH];
+	mirror(newPath,path);
+	int res = lgetxattr(newPath, name, value, size);
 	if (res == -1)
 		return -errno;
 	return res;
@@ -372,7 +434,9 @@ static int xmp_getxattr(const char *path, const char *name, char *value,
 
 static int xmp_listxattr(const char *path, char *list, size_t size)
 {
-	int res = llistxattr(path, list, size);
+	char newPath[PATH];
+	mirror(newPath,path);
+	int res = llistxattr(newPath, list, size);
 	if (res == -1)
 		return -errno;
 	return res;
@@ -380,7 +444,9 @@ static int xmp_listxattr(const char *path, char *list, size_t size)
 
 static int xmp_removexattr(const char *path, const char *name)
 {
-	int res = lremovexattr(path, name);
+	char newPath[PATH];
+	mirror(newPath,path);
+	int res = lremovexattr(newPath, name);
 	if (res == -1)
 		return -errno;
 	return 0;
@@ -421,5 +487,20 @@ static struct fuse_operations xmp_oper = {
 int main(int argc, char *argv[])
 {
 	umask(0);
-	return fuse_main(argc, argv, &xmp_oper, NULL);
+
+	if (argc < 4){
+		printf("Not Enough Arguments... Exiting\n");
+		return 1;
+	}
+
+	struct xmp *mirror;
+	mirror = malloc(sizeof(struct xmp));
+	mirror->input = realpath(argv[2],NULL);
+	mirror->output = realpath(argv[3],NULL);
+	mirror->key = argv[1];
+	argv[1] = argv[3];
+    argv[2] = argv[4];
+    argc = argc - 2;
+
+	return fuse_main(argc, argv, &xmp_oper, mirror);
 }

@@ -20,14 +20,16 @@ LFLAGS = -g -Wall -Wextra
 FUSE_EXAMPLES = fusehello fusexmp 
 XATTR_EXAMPLES = xattr-util
 OPENSSL_EXAMPLES = aes-crypt-util 
+PA4-ENDFS = pa4-endfs
 
-.PHONY: all fuse-examples xattr-examples openssl-examples clean
+.PHONY: all fuse-examples xattr-examples openssl-examples aesfs clean
 
-all: fuse-examples xattr-examples openssl-examples
+all: fuse-examples xattr-examples openssl-examples pa4-endfs
 
 fuse-examples: $(FUSE_EXAMPLES)
 xattr-examples: $(XATTR_EXAMPLES)
 openssl-examples: $(OPENSSL_EXAMPLES)
+aesfs: $(AESFS)
 
 fusehello: fusehello.o
 	$(CC) $(LFLAGS) $^ -o $@ $(LLIBSFUSE)
@@ -40,6 +42,12 @@ xattr-util: xattr-util.o
 
 aes-crypt-util: aes-crypt-util.o aes-crypt.o
 	$(CC) $(LFLAGS) $^ -o $@ $(LLIBSOPENSSL)
+
+pa4-endfs: pa4-endfs.o
+	$(CC) $(LFLAGS) $^ -o $@ $(LLIBSFUSE)
+
+pa4-endfs.o: pa4-endfs.c
+	$(CC) $(CFLAGS) $(CFLAGSFUSE) $<
 
 fusehello.o: fusehello.c
 	$(CC) $(CFLAGS) $(CFLAGSFUSE) $<
@@ -60,6 +68,7 @@ clean:
 	rm -f $(FUSE_EXAMPLES)
 	rm -f $(XATTR_EXAMPLES)
 	rm -f $(OPENSSL_EXAMPLES)
+	rm -f $(PA4-ENDFS)
 	rm -f *.o
 	rm -f *~
 	rm -f handout/*~
