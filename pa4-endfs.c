@@ -362,12 +362,37 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 {
 	int fd;
 	int res;
+	FILE *fp, *tmp;
 
 	char newPath[PATH];
 	mirror(newPath,path);
 
 	(void) fi;
-	fd = open(newPath, O_WRONLY);
+	
+	fp = fopen(newPath, "r");
+	if (fp == NULL)
+		return -errno;
+	
+	tmp = tmpfile();
+	if (tmp == NULL)
+		return -errno;
+	
+	do_crypt(fp, tmp, 0, XMP_INFO->key);
+	fclose(fp);
+
+	fseek(tmp, offset, SEEK_SET);
+	res = fwrite(buf, 1, size, tmp);
+	if (res == -1)
+		res = -errno;
+		
+	fp = fopen(newPath, "w");
+	fseek(tmp, 0, SEEK_SET);
+	do_crypt(tmp, fp, 1, XMP_INFO->key);
+
+	fclose(tmp);
+	fclose(fp);
+
+	/*fd = open(newPath, O_WRONLY);
 	if (fd == -1)
 		return -errno;
 
@@ -375,7 +400,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 	if (res == -1)
 		res = -errno;
 
-	close(fd);
+	close(fd);*/
 	return res;
 }
 
