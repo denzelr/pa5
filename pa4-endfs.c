@@ -322,17 +322,19 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 	//int action = 1;
 
 	char newPath[PATH];
-	mirror(newPath,path);
+	mirror(newPath, path);
 
 	(void) fi;
 	fd = open(newPath, O_RDONLY);
 	if (fd == -1)
 		return -errno;
 
-	//FILE *tmpFile = fopen(path, "wb+");
 	//FILE *f = fopen(newPath, "rb");
+	//FILE *tmpFile = fopen(newPath, "wb+");
 
-	//do_crypt(f, tmpFile, action, XMP_INFO->key);
+	//if(!do_crypt(f, tmpFile, action, XMP_INFO->key)){
+	//	fprintf(stderr, "do_crypt failed\n");
+    //}
 
 	res = pread(fd, buf, size, offset);
 	if (res == -1)
