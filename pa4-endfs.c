@@ -45,8 +45,10 @@
 #include <sys/time.h>
 #ifdef HAVE_SETXATTR
 #include <sys/xattr.h>
-#include "aes-crypt.h"
+
 #endif
+
+#include "aes-crypt.h"
 
 struct xmp {
 	char *input; //mirror path
@@ -317,6 +319,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 {
 	int fd;
 	int res;
+	//int action = 1;
 
 	char newPath[PATH];
 	mirror(newPath,path);
@@ -325,6 +328,11 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 	fd = open(newPath, O_RDONLY);
 	if (fd == -1)
 		return -errno;
+
+	//FILE *tmpFile = fopen(path, "wb+");
+	//FILE *f = fopen(newPath, "rb");
+
+	//do_crypt(f, tmpFile, action, XMP_INFO->key);
 
 	res = pread(fd, buf, size, offset);
 	if (res == -1)

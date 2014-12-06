@@ -43,8 +43,8 @@ xattr-util: xattr-util.o
 aes-crypt-util: aes-crypt-util.o aes-crypt.o
 	$(CC) $(LFLAGS) $^ -o $@ $(LLIBSOPENSSL)
 
-pa4-endfs: pa4-endfs.o
-	$(CC) $(LFLAGS) $^ -o $@ $(LLIBSFUSE)
+pa4-endfs: pa4-endfs.o aes-crypt.o
+	$(CC) $(LFLAGS) $^ -o $@ $(LLIBSFUSE) $(LLIBSOPENSSL)
 
 pa4-endfs.o: pa4-endfs.c
 	$(CC) $(CFLAGS) $(CFLAGSFUSE) $<
