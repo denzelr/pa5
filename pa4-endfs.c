@@ -319,28 +319,42 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 {
 	int fd;
 	int res;
-	//int action = 1;
+	FILE *fp, *tmp;
+	int action = 0;
 
 	char newPath[PATH];
 	mirror(newPath, path);
 
 	(void) fi;
-	fd = open(newPath, O_RDONLY);
-	if (fd == -1)
-		return -errno;
 
-	//FILE *f = fopen(newPath, "rb");
-	//FILE *tmpFile = fopen(newPath, "wb+");
+	fp = fopen(newPath, "rb");
+	tmp = fopen(newPath, "wb+");
 
-	//if(!do_crypt(f, tmpFile, action, XMP_INFO->key)){
-	//	fprintf(stderr, "do_crypt failed\n");
-    //}
-
-	res = pread(fd, buf, size, offset);
+	if(!do_crypt(fp, tmp, action, XMP_INFO->key)){
+		fprintf(stderr, "do_crypt failed\n");
+    }
+    fclose(fp);
+    fseek(tmp, offset, SEEK_SET);
+	res = fread(buf, 1, size, tmp);
 	if (res == -1)
 		res = -errno;
+	fclose(tmp);
 
-	close(fd);
+
+	//fd = open(newPath, O_RDONLY);
+	//if (fd == -1)
+	//	return -errno;
+	
+	
+	
+
+	//res = pread(tmp, buf, size, offset);
+	//if (res == -1)
+	//	res = -errno;
+
+	//close(f);
+	//close(tmp);
+	//close(fd);
 	return res;
 }
 
@@ -494,6 +508,10 @@ static struct fuse_operations xmp_oper = {
 #endif
 };
 
+
+//Pfeiffer, Joseph. Writing a FUSE Filesystem: a Tutorial. January 10th, 2011. http:
+//www.cs.nmsu.edu/~pfeiffer/fuse-tutorial/
+//bbfs.c
 int main(int argc, char *argv[])
 {
 	umask(0);
