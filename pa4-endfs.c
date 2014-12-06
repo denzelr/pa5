@@ -327,8 +327,12 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 
 	(void) fi;
 
-	fp = fopen(newPath, "rb");
-	tmp = fopen(newPath, "wb+");
+	fp = fopen(newPath, "r");
+	if (fp == NULL)
+			return -errno;
+	tmp = tmpfile();
+	if (tmp == NULL)
+			return -errno;
 
 	if(!do_crypt(fp, tmp, action, XMP_INFO->key)){
 		fprintf(stderr, "do_crypt failed\n");
@@ -345,15 +349,10 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 	//if (fd == -1)
 	//	return -errno;
 	
-	
-	
-
 	//res = pread(tmp, buf, size, offset);
 	//if (res == -1)
 	//	res = -errno;
 
-	//close(f);
-	//close(tmp);
 	//close(fd);
 	return res;
 }
