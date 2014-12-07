@@ -320,7 +320,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 	int fd;
 	int res;
 	FILE *fp, *tmp;
-	int action = 0;
+	
 
 	char newPath[PATH];
 	mirror(newPath, path);
@@ -334,7 +334,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 	if (tmp == NULL)
 			return -errno;
 
-	if(!do_crypt(fp, tmp, action, XMP_INFO->key)){
+	if(!do_crypt(fp, tmp, 0, XMP_INFO->key)){
 		fprintf(stderr, "do_crypt failed\n");
     }
     fclose(fp);
