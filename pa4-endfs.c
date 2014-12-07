@@ -329,6 +329,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 
 	(void) fi;
 
+	//Uncomment out this section to mount encrypted code////////
 	fp = fopen(newPath, "r");
 	if (fp == NULL)
 			return -errno;
@@ -345,7 +346,9 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 	if (res == -1)
 		res = -errno;
 	fclose(tmp);
+	/////////////////////////////////////////////////////////////
 
+	//Uncomment this section to mount unencrypted code///////////
 	/*fd = open(newPath, O_RDONLY);
 	if (fd == -1)
 		return -errno;
@@ -355,6 +358,7 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 		res = -errno;
 
 	close(fd);*/
+	/////////////////////////////////////////////////////////////
 
 	return res;
 }
@@ -372,6 +376,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 
 	(void) fi;
 
+	//Uncomment this section to write unencrypted code to mnt////////
 	fp = fopen(newPath, "r");
 	if (fp == NULL)
 		return -errno;
@@ -394,16 +399,18 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 
 	fclose(tmp);
 	fclose(fp);
+	/////////////////////////////////////////////////////////////////////
 
+	//Uncomment this section to write encrypted code to mnt///////////
 	/*fd = open(newPath, O_WRONLY);
 	if (fd == -1)
 		return -errno;
 
 	res = pwrite(fd, buf, size, offset);
 	if (res == -1)
-		res = -errno;
+		res = -errno;*/
 
-	close(fd);*/
+	close(fd);
 
 	return res;
 }
