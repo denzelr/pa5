@@ -29,10 +29,13 @@
 #include <config.h>
 #endif
 
+static const char FLAG[] = "user.pa4-endfs.encrypted";
+
 #ifdef linux
 /* For pread()/pwrite() */
 #define _XOPEN_SOURCE 500
 #define PATH 255
+#define ENOATTR ENODATA
 #endif
 
 #include <fuse.h>
@@ -69,7 +72,7 @@ static int mirror(char mirDir[PATH], const char *path)
 static int xmp_getattr(const char *path, struct stat *stbuf)
 {
 	int res;
-
+	long unecrsize;
 	char newPath[PATH];
 	mirror(newPath,path);
 
@@ -344,18 +347,19 @@ static int xmp_read(const char *path, char *buf, size_t size, off_t offset,
 		res = -errno;
 	fclose(tmp);
 
-
-	//fd = open(newPath, O_RDONLY);
-	//if (fd == -1)
-	//	return -errno;
+	/*fd = open(newPath, O_RDONLY);
+	if (fd == -1)
+		return -errno;
 	
-	//res = pread(tmp, buf, size, offset);
-	//if (res == -1)
-	//	res = -errno;
+	res = pread(fd, buf, size, offset);
+	if (res == -1)
+		res = -errno;
 
-	//close(fd);
+	close(fd);*/
+
 	return res;
 }
+
 
 static int xmp_write(const char *path, const char *buf, size_t size,
 		     off_t offset, struct fuse_file_info *fi)
@@ -368,7 +372,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 	mirror(newPath,path);
 
 	(void) fi;
-	
+
 	fp = fopen(newPath, "r");
 	if (fp == NULL)
 		return -errno;
@@ -401,6 +405,7 @@ static int xmp_write(const char *path, const char *buf, size_t size,
 		res = -errno;
 
 	close(fd);*/
+
 	return res;
 }
 
